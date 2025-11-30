@@ -1,0 +1,5 @@
+{
+  "name": "TPA Intimation Gen",
+  "description": "A responsive web tool to parse WhatsApp messages into formatted insurance intimation emails using Gemini AI.",
+  "requestFramePermissions": []
+}
