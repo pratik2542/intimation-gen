@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { parseMessageToData } from './services/gemini';
+import { parseMessageToData, translateDiseaseToEnglish } from './services/gemini';
 import { AppStep, ExtractedData, EmailConfig } from './types';
 import { InputField } from './components/InputField';
 import {
@@ -19,6 +19,9 @@ export default function App() {
   const [rawText, setRawText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [diseaseTranslating, setDiseaseTranslating] = useState(false);
+  const [diseaseTranslateError, setDiseaseTranslateError] = useState<string | null>(null);
 
   // Form State for Review
   const [formData, setFormData] = useState<ExtractedData>({
@@ -87,9 +90,24 @@ NAME : ${data.doctorHospital}`;
     
     setLoading(true);
     setError(null);
+    setDiseaseTranslateError(null);
     try {
       const extracted = await parseMessageToData(rawText);
-      setFormData(extracted);
+
+      // If disease is in Gujarati, translate to English before showing Review.
+      let normalized = extracted;
+      try {
+        setDiseaseTranslating(true);
+        const translatedDisease = await translateDiseaseToEnglish(extracted.disease ?? '');
+        normalized = { ...extracted, disease: translatedDisease };
+      } catch (translateErr) {
+        console.error(translateErr);
+        setDiseaseTranslateError('Could not translate Gujarati disease to English.');
+      } finally {
+        setDiseaseTranslating(false);
+      }
+
+      setFormData(normalized);
       setStep(AppStep.REVIEW);
     } catch (e) {
       console.error(e);
@@ -120,6 +138,29 @@ NAME : ${data.doctorHospital}`;
     setStep(AppStep.INPUT);
     setRawText("");
     setError(null);
+  };
+
+  const handleDiseasePaste = async (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const pastedText = e.clipboardData?.getData('text') ?? '';
+    const looksGujarati = /[\u0A80-\u0AFF]/.test(pastedText);
+    if (!looksGujarati) return;
+
+    e.preventDefault();
+    setDiseaseTranslateError(null);
+    setDiseaseTranslating(true);
+
+    // Show the pasted text immediately; we'll replace it once translated.
+    setFormData(prev => ({ ...prev, disease: pastedText.trim() }));
+
+    try {
+      const translated = await translateDiseaseToEnglish(pastedText);
+      setFormData(prev => ({ ...prev, disease: translated }));
+    } catch (err) {
+      console.error(err);
+      setDiseaseTranslateError('Could not translate Gujarati to English.');
+    } finally {
+      setDiseaseTranslating(false);
+    }
   };
 
   return (
@@ -264,7 +305,18 @@ NAME : ${data.doctorHospital}`;
                     label="Disease / Diagnosis" 
                     value={formData.disease} 
                     onChange={(v) => setFormData(prev => ({...prev, disease: v}))} 
+                    onPaste={handleDiseasePaste}
                   />
+                  {(diseaseTranslating || diseaseTranslateError) && (
+                    <div className="-mt-2">
+                      {diseaseTranslating && (
+                        <p className="text-xs text-blue-600">Translating Gujarati disease to English…</p>
+                      )}
+                      {diseaseTranslateError && (
+                        <p className="text-xs text-red-600">{diseaseTranslateError}</p>
+                      )}
+                    </div>
+                  )}
                   <InputField 
                     label="Doctor & Hospital" 
                     value={formData.doctorHospital} 

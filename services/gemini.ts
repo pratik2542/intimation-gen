@@ -3,6 +3,8 @@ import { ExtractedData } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+const GUJARATI_RANGE_REGEX = /[\u0A80-\u0AFF]/;
+
 export const parseMessageToData = async (text: string): Promise<ExtractedData> => {
   const prompt = `
     Analyze the following text which contains insurance claim intimation details. 
@@ -56,4 +58,24 @@ export const parseMessageToData = async (text: string): Promise<ExtractedData> =
   }
   
   throw new Error("Failed to parse data from Gemini");
+};
+
+export const translateDiseaseToEnglish = async (diseaseText: string): Promise<string> => {
+  const trimmed = (diseaseText ?? '').trim();
+  if (!trimmed) return '';
+
+  // If it's not Gujarati, don't change what the user pasted.
+  if (!GUJARATI_RANGE_REGEX.test(trimmed)) return trimmed;
+
+  const prompt = `Translate the following Gujarati disease/diagnosis into concise English (medical term).\nReturn ONLY the English translation, with no quotes and no explanation.\n\nText:\n"""\n${trimmed}\n"""`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+  });
+
+  const out = response.text?.trim();
+  if (!out) return trimmed;
+
+  return out.replace(/^['"]|['"]$/g, '').trim();
 };
