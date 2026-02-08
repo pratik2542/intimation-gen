@@ -11,7 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 // Default constants
-const DEFAULT_TO = "dharmendra.joshi@paramounttpa.com, contact.phs@paramounttpa.com, claim.intimation@paramounttpa.com, pankajkumar.solanki@paramounttpa.com";
+const DEFAULT_TO = "dharmendra.joshi@paramounttpa.com, contact.phs@paramounttpa.com, claim.intimation@paramounttpa.com, pankajkumar.solanki@paramounttpa.com, gi@vidalhealth.com, ahmintimation@vidalhealth.com";
 const DEFAULT_BCC = "Mahipatsinh Gohel <mpgohel2016@gmail.com>";
 
 export default function App() {
