@@ -14,6 +14,14 @@ const request = async <Result>(action: 'parse' | 'translate', text: string): Pro
     body: JSON.stringify({ action, text }),
     signal: AbortSignal.timeout(35_000),
   });
+  if (!response.headers.get('content-type')?.includes('application/json')) {
+    throw new GroqRequestError(
+      response.status === 404
+        ? 'The AI endpoint is missing from this deployment. Redeploy with the Vercel API function.'
+        : 'The AI server returned an unexpected response. Please retry or enter details manually.',
+      response.ok ? 502 : response.status,
+    );
+  }
   const result = await response.json();
   if (!response.ok) {
     throw new GroqRequestError(result.error ?? 'Groq request failed.', response.status);
