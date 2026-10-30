@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { parseMessageToData, translateDiseaseToEnglish } from './services/gemini';
+import { GroqRequestError, parseMessageToData, translateDiseaseToEnglish } from './services/groq';
 import { AppStep, ExtractedData, EmailConfig } from './types';
 import { InputField } from './components/InputField';
 import {
@@ -111,7 +111,9 @@ NAME : ${data.doctorHospital}`;
       setStep(AppStep.REVIEW);
     } catch (e) {
       console.error(e);
-      setError("Failed to process the text. Please try again or fill manually.");
+      setError(e instanceof GroqRequestError
+        ? e.message
+        : "The request failed or timed out. Try again or enter the details manually.");
     } finally {
       setLoading(false);
     }
@@ -232,6 +234,19 @@ NAME : ${data.doctorHospital}`;
                   Generate Email
                 </>
               )}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setDiseaseTranslateError(null);
+                setStep(AppStep.REVIEW);
+              }}
+              disabled={loading}
+              className="w-full py-3 rounded-lg border border-gray-300 bg-white font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <PencilSquareIcon className="w-5 h-5" />
+              Enter Manually
             </button>
           </div>
         )}
